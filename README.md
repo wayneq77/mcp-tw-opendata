@@ -17,26 +17,23 @@
 - **Docker** 與 **Docker Compose**
 - 至少 2GB 可用記憶體與 5GB 硬碟空間（用於 PostgreSQL 資料庫）
 
-### 1. 取得程式碼
+### 1. 一鍵極速安裝 (One-Line Install)
+打開終端機，貼上以下這行指令，系統就會全自動下載、設定並啟動所有伺服器：
 ```bash
-git clone https://github.com/wayneq77/mcp-tw-opendata.git
-cd mcp-tw-opendata
+curl -sSL https://raw.githubusercontent.com/wayneq77/mcp-tw-opendata/main/install.sh | bash
 ```
 
-### 2. 環境設定
-複製範例環境變數檔，並設定資料庫密碼：
-```bash
-cp .env.example .env
-```
-*(請編輯 `.env` 檔案並確保 `POSTGRES_PASSWORD` 已被正確設定。預設運行 Port 為 `9527` 以避免常見衝突)*
+### 2. (進階) 開啟 Telegram 主動更新推播
+如果你希望當官方有新增資料（例如政府採購網、立法院等高價值特規資料）時，系統能主動傳訊息到你的手機：
+1. 編輯專案目錄下的 `.env` 檔案。
+2. 填入你的 Telegram 機器人資訊：
+   ```env
+   TELEGRAM_BOT_TOKEN=你的機器人Token
+   TELEGRAM_CHAT_ID=你的聊天ID
+   ```
+3. 執行 `docker compose up -d` 重啟套用，你的專屬資料情報員就會上線！
 
-### 3. 啟動服務
-使用 Docker Compose 啟動包含資料庫、MCP 伺服器與同步 Worker 的三層架構：
-```bash
-docker compose up -d
-```
-
-### 4. 驗證服務狀態
+### 3. 驗證服務狀態
 ```bash
 # 查看容器運行狀態
 docker ps
