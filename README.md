@@ -22,7 +22,6 @@
 git clone https://github.com/你的帳號/mcp-tw-opendata.git
 cd mcp-tw-opendata
 ```
-*(如果你的朋友是拿到壓縮包，請直接解壓縮並進入該資料夾)*
 
 ### 步驟 2：環境設定
 複製範例環境變數檔，並根據需求修改密碼（預設 Port 為 `9527` 避免衝突）：
