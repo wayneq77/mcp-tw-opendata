@@ -103,6 +103,20 @@ class SyncWorker:
             elapsed = (datetime.now() - start_time).total_seconds()
             print(f"同步完成！新增:{added} 更新:{updated} 失敗:{errors} 耗時:{elapsed:.1f}s", flush=True)
 
+            # 4. 檢查官方更新與執行原生爬蟲 (Native Fetchers)
+            try:
+                import changelog_monitor
+                changelog_monitor.check_changelog()
+            except Exception as ce:
+                print(f"檢查 Changelog 失敗: {ce}", flush=True)
+
+            try:
+                print("開始執行原生爬蟲 (Custom Fetchers)...", flush=True)
+                import subprocess
+                subprocess.run(["bash", "/app/custom_scripts/run_all.sh"], check=False)
+            except Exception as ce:
+                print(f"執行原生爬蟲失敗: {ce}", flush=True)
+
         except Exception as e:
             print(f"同步失敗: {e}", flush=True)
             traceback.print_exc()
