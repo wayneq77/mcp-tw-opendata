@@ -90,6 +90,26 @@ docker logs mcp-tw-server
 
 ---
 
+## 🔄 版本更新 (Update)
+當專案有新版本時，進入專案目錄執行：
+```bash
+cd mcp-tw-opendata
+bash update.sh
+```
+更新過程會自動拉取最新程式碼並重建容器，**資料庫不受影響**，不需要重新同步。
+
+---
+
+## 🗑️ 解除安裝 (Uninstall)
+若要完整移除本專案（包含容器、資料庫及所有資料）：
+```bash
+cd mcp-tw-opendata
+bash uninstall.sh
+```
+執行前會跳出確認提示，確認後將清除所有 Docker 容器、資料庫 Volume、Image 及專案目錄。
+
+---
+
 ## ⚠️ 常見問題 (FAQ)
 
 1. **為什麼剛啟動時搜尋不到開放資料？**
@@ -102,6 +122,9 @@ docker logs mcp-tw-server
 
 3. **遇到 Port 衝突怎麼辦？**
    請修改 `.env` 檔案中的 `MCP_HOST_PORT` 與 `DB_HOST_PORT`，並重新執行 `docker compose up -d` 套用設定。
+
+4. **Telegram 推播功能是什麼？**
+   系統每小時自動檢查官方是否有新增資料集。若偵測到更新，會透過 Telegram 推播通知你。此功能為選填，不設定也不影響系統運作。
 
 ## 📜 授權 (License)
 MIT License
