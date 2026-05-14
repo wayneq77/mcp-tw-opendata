@@ -233,16 +233,28 @@ def main():
         target_hour = parse_cron_hour(args.schedule)
         print(f"=== 排程模式 ===", flush=True)
         print(f"Cron: {args.schedule} → 每天 {target_hour}:00 執行同步", flush=True)
+        print(f"Changelog 監控：每小時自動檢查一次", flush=True)
         print(f"Process 啟動時間: {datetime.now()}", flush=True)
         print(f"等待下次執行時間...", flush=True)
 
         last_run_date = None
+        last_changelog_check = None  # 記錄上次 changelog 檢查的小時
 
         while True:
             now = datetime.now()
             today = now.date()
+            current_hour = now.hour
 
-            # 到達執行時間且今天還沒跑過
+            # 每小時檢查一次 Changelog（不管幾點）
+            if last_changelog_check != (today, current_hour):
+                last_changelog_check = (today, current_hour)
+                try:
+                    import changelog_monitor
+                    changelog_monitor.check_changelog()
+                except Exception as ce:
+                    print(f"Changelog 檢查失敗: {ce}", flush=True)
+
+            # 到達執行時間且今天還沒跑過 → 執行完整資料同步
             if now.hour == target_hour and last_run_date != today:
                 print(f"\n{'='*60}", flush=True)
                 print(f"排程觸發: {now}", flush=True)

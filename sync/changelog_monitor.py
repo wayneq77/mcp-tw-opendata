@@ -1,6 +1,6 @@
 """
 Changelog Monitor - 自動偵測 Twinkle Hub 官方更新並推播 Telegram 通知
-會動態解析網頁內容，精準提取每次更新的摘要，而非使用寫死的關鍵字。
+動態解析網頁內容，精準提取每次更新的摘要。
 """
 import os
 import re
@@ -10,8 +10,9 @@ from bs4 import BeautifulSoup
 
 
 def send_telegram_message(token, chat_id, message):
+    """使用 HTML 格式發送 Telegram 訊息，避免 Markdown 特殊字元干擾"""
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    payload = {"chat_id": chat_id, "text": message, "parse_mode": "Markdown"}
+    payload = {"chat_id": chat_id, "text": message, "parse_mode": "HTML"}
     try:
         resp = requests.post(url, json=payload, timeout=10)
         if not resp.ok:
@@ -23,32 +24,30 @@ def send_telegram_message(token, chat_id, message):
 def parse_changelog(html):
     """
     從 Changelog 頁面動態解析所有更新條目。
-    回傳: (content_hash, entries_list)
-      - content_hash: 整頁內容的 SHA256，用來判斷是否有新變動
-      - entries_list: 每筆更新的摘要字串清單
+    回傳: (content_hash, date_entries, highlights)
     """
     soup = BeautifulSoup(html, 'html.parser')
-    full_text = soup.get_text(separator="\n", strip=True)
+    full_text = soup.get_text(separator=" ", strip=True)
 
-    # 用整頁文字的 hash 來偵測任何變動（比寫死關鍵字精確得多）
+    # 用整頁文字的 hash 來偵測任何變動
     content_hash = hashlib.sha256(full_text.encode("utf-8")).hexdigest()[:16]
 
-    # 解析更新條目：抓取所有日期行（格式 📌 2026-05-14 ...）
-    entries = []
-    for line in full_text.split("\n"):
-        line = line.strip()
-        # 匹配日期開頭的更新標題行
-        if re.match(r"^📌?\s*\d{4}-\d{2}-\d{2}", line):
-            entries.append(line)
+    # 解析日期標題：抓 📌 開頭的文字
+    date_entries = []
+    for el in soup.find_all(string=re.compile(r"📌?\s*\d{4}-\d{2}-\d{2}")):
+        text = el.strip()
+        if text and len(text) > 8:
+            date_entries.append(text[:120])
 
-    # 同時抓取 Highlights 區塊中的重點
+    # 解析 Highlights：從 <li> 元素中抓取以 ✓ 開頭的項目
     highlights = []
-    for line in full_text.split("\n"):
-        line = line.strip()
-        if line.startswith("- ✓") or line.startswith("✓"):
-            highlights.append(line[:80])  # 截短避免訊息太長
+    for li in soup.find_all("li"):
+        text = li.get_text(strip=True)
+        if text.startswith("✓") and len(text) > 2:
+            # 截短到 100 字避免訊息太長
+            highlights.append(text[:100])
 
-    return content_hash, entries, highlights
+    return content_hash, date_entries, highlights
 
 
 def check_changelog():
@@ -62,7 +61,7 @@ def check_changelog():
         print(f"無法讀取 Changelog: {e}")
         return
 
-    content_hash, entries, highlights = parse_changelog(resp.text)
+    content_hash, date_entries, highlights = parse_changelog(resp.text)
 
     # 讀取上次的 hash
     state_file = "/app/data/last_changelog_hash.txt"
@@ -77,20 +76,20 @@ def check_changelog():
 
     print("💡 發現新的更新！")
 
-    # 組裝通知訊息（動態內容）
-    msg_parts = ["🔔 *Twinkle Hub 官方更新通知*\n"]
+    # 組裝通知訊息（使用 HTML 格式）
+    msg_parts = ["🔔 <b>Twinkle Hub 官方更新通知</b>\n"]
 
-    if entries:
-        msg_parts.append("📌 *最新更新：*")
-        for entry in entries[:3]:  # 最多顯示 3 條最新
-            msg_parts.append(f"  {entry}")
+    if date_entries:
+        msg_parts.append("📌 <b>最新更新：</b>")
+        for entry in date_entries[:3]:
+            msg_parts.append(f"  • {entry}")
 
     if highlights:
-        msg_parts.append("\n✨ *重點摘要：*")
-        for h in highlights[:6]:  # 最多顯示 6 條重點
-            msg_parts.append(f"  {h}")
+        msg_parts.append("\n✨ <b>重點摘要：</b>")
+        for h in highlights[:8]:
+            msg_parts.append(f"  • {h}")
 
-    msg_parts.append("\n🔗 完整內容：https://hub.twinkleai.tw/changelog")
+    msg_parts.append(f"\n🔗 完整內容：https://hub.twinkleai.tw/changelog")
     msg = "\n".join(msg_parts)
 
     # 發送 Telegram
